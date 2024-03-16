@@ -1,0 +1,1 @@
+- To build the Project use `./Initializer` and then use `./Runner.sh` to run the services
