@@ -12,12 +12,15 @@ _get_parent () {
 
 parent_path=$(_get_parent $(readlink -f $0) 1)
 
-set -o allexport && source .env && set +o allexport
+if [ -f "$parent_path/.env" ]; then
+	set -o allexport && source "$parent_path/.env" && set +o allexport
+fi
 
-mkdir -p $dir_path/log
-sudo mkdir -p $dir_path/Data/postgres
-sudo mkdir -p $dir_path/Data/Nocodb
-sudo mkdir -p $dir_path/NocoSettings
+mkdir -p $parent_path/log
+sudo mkdir -p $parent_path/AppData/postgres
+sudo mkdir -p $parent_path/AppData/nocodb-pg
+mkdir -p $parent_path/NocoSettings
+mkdir -p $parent_path/AppData/Nocodb
 
 touch $parent_path/log/error.log
 touch $parent_path/log/info.log
@@ -39,7 +42,7 @@ _add_execute () {
 bash $parent_path/Logger/Log.sh "Making Essential Files Executable"
 
 _add_execute logger sh
-_permiter "$parent_path/Data/Backup.sh"
+_add_execute "$parent_path/Data/Backup.sh"
 _add_execute "$parent_path/Runner.sh"
 _add_execute "$parent_path/Data/GetData.py"
 _add_execute "$parent_path/Stopper.sh"
@@ -91,72 +94,148 @@ if [ $? -ne 0 ]; then
 	fi
 fi
 
-sudo apt-get install -y libpq-dev
+# sudo apt-get install -y libpq-dev
 
-if [ $? -ne 0 ]; then
-	if [ $apt_update -ne 1 ]; then
-		sudo apt-get update
-	fi
-	sudo apt-get install -y libpq-dev
-	if [ $? -ne 0 ]; then
-    	echo "Libpq-dev installation failed"
-    	exit 1
-	fi
-fi
+# if [ $? -ne 0 ]; then
+# 	if [ $apt_update -ne 1 ]; then
+# 		sudo apt-get update
+# 	fi
+# 	sudo apt-get install -y libpq-dev
+# 	if [ $? -ne 0 ]; then
+#     	echo "Libpq-dev installation failed"
+#     	exit 1
+# 	fi
+# fi
 
 bash $parent_path/Logger/Log.sh "Creating Python Venv"
 
-if ! [ -d "$parent_path/.venv" ]; then
-	python3 -m venv $parent_path/.venv
-	if [ $? -ne 0 ]; then
-		echo "Installing python3-venv:"
-		sudo rm -rf $parent_path/.venv
-		sudo apt-get install -y python3-venv
+if [ -d "$parent_path/.venv" ]; then
+  source $parent_path/.venv/bin/activate
+  if [ $? -ne 0 ]; then
+    sudo chmod a+x $parent_path/.venv/bin/activate
+    if [ $? -ne 0 ]; then
+      bash $parent_path/Logger/Log.sh "Adding execute permission to .venv/bin/activate failed"
+      exit 1
+    fi
+    
+    source $parent_path/.venv/bin/activate
+    if [ $? -ne 0 ]; then
+      bash $parent_path/Logger/Log.sh "Virtual environment activation failed"
+      exit 1
+    fi
 
-		if [ $? -ne 0 ]; then
-			echo "Installation failed"
-			exit 1
-		fi
-	fi
+    pip install poetry==1.8.2
+    if [ $? -eq 0 ]; then
+      poetry shell
+      if [ $? -ne 0 ]; then
+        echo "Poetry shell activation failed"
+        exit 1
+      fi
+      
+      poetry install --no-root
+      if [ $? -ne 0 ]; then
+        bash $parent_path/Logger/Log.sh "Packages installation with poetry failed."
+        exit 1
+      fi
+    else
+      bash $parent_path/Logger/Log.sh "Poetry installation failed."
+      exit 1
+    fi
 
-	source $parent_path/.venv/bin/activate
-	if [ $? -ne 0 ]; then
-		sudo chmod a+x $parent_path/.venv/bin/activate
-		if [ $? -ne 0 ]; then
-			echo "Adding execution permission failed"
-			exit 1
-		fi
-		
-		source $parent_path/.venv/bin/activate
-		if [ $? -ne 0 ]; then
-			echo "Venv activation failed"
-			exit 1
-		fi
-	fi
-	
-	pip install poetry==1.8.2
-	if [ $? -ne 0 ]; then
-		echo "Poetry installation failed"
-		exit 1
-	fi
-	
-	poetry shell
-	if [ $? -ne 0 ]; then
-		echo "Poetry shell activation failed"
-		exit 1
-	fi
-	bash $parent_path/Logger/Log.sh "Installing Required Packages:"
-	poetry install --no-root
-	if [ $? -ne 0 ]; then
-		echo "Installation failed"
-		exit 1
-	fi
+  else
+    pip install poetry==1.8.2
+    if [ $? -eq 0 ]; then
+      poetry shell
+      if [ $? -ne 0 ]; then
+        bash $parent_path/Logger/Log.sh "Poetry shell activation failed"
+        exit 1
+      fi
+      
+      poetry install --no-root
+      if [ $? -ne 0 ]; then
+        bash $parent_path/Logger/Log.sh "Packages installation failed"
+        exit 1
+      fi
+    else
+      bash $parent_path/Logger/Log.sh "Poetry installation failed."
+      exit 1
+    fi
+  fi
+else
+  python3 -m venv $parent_path/.venv
+  if [ $? -eq 0 ]; then
+    sudo chmod a+x $parent_path/.venv/bin/activate
+    if [ $? -ne 0 ]; then
+      exit 1
+    fi
+    
+    source $parent_path/.venv/bin/activate
+    if [ $? -ne 0 ]; then
+      exit 1
+    fi
+
+    pip install poetry==1.8.2
+    if [ $? -eq 0 ]; then
+      poetry shell
+      if [ $? -ne 0 ]; then
+        bash $parent_path/Logger/Log.sh "Poetry shell activation failed"
+        exit 1
+      fi
+      
+      poetry install --no-root
+      if [ $? -ne 0 ]; then
+        echo "Packages installation failed"
+        exit 1
+      fi
+    else
+      echo "Poetry installation failed."
+      exit 1
+    fi
+  else
+    echo "Creating python virtual environment"
+    sudo rm -rf $parent_path/.venv
+    sudo apt-get install -y python3-venv
+    
+    if [ $? -eq 0 ]; then
+      sudo chmod a+x $parent_path/.venv/bin/activate
+      if [ $? -ne 0 ]; then
+        exit 1
+      fi
+      
+      source $parent_path/.venv/bin/activate
+      if [ $? -ne 0 ]; then
+        exit 1
+      fi
+
+      pip install poetry==1.8.2
+      if [ $? -eq 0 ]; then
+        poetry shell
+        if [ $? -ne 0 ]; then
+          echo "Poetry shell activation failed"
+          exit 1
+        fi
+        
+        poetry install --no-root
+        if [ $? -ne 0 ]; then
+          echo "Packages installation failed"
+          exit 1
+        fi
+      else
+        echo "Poetry installation failed."
+        exit 1
+      fi
+    else
+      echo "Pyton virtual environment creation failed"
+      exit 1
+    fi
+  fi
 fi
+
 
 docker compose -f $parent_path/docker-compose.yml --profile=nocodb down
 docker compose -f $parent_path/docker-compose.yml --profile=nocodb up -d
 
-bash $parent_path/logger/log.sh "Initializing Nocodb"
+bash $parent_path/Logger/Log.sh "Initializing Nocodb"
 
 count=0
 flag=0
@@ -171,11 +250,11 @@ while [ $count -lt 30 ]; do
 done
 
 if [ $flag -eq 0 ]; then
-	bash $parent_path/logger/log.sh "Nocodb connection failed"
+	bash $parent_path/Logger/Log.sh "Nocodb connection failed"
 	exit 1
 fi
 
-bash $parent_path/logger/log.sh "Nocodb Connection Successful"
+bash $parent_path/Logger/Log.sh "Nocodb Connection Successful"
 
 python3 "$parent_path/Nocodb/CreateBase.py" 1>/dev/null 2>/dev/null
 
@@ -185,7 +264,7 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-python3 "$parent_path/nocodb/create_table.py" 1>/dev/null 2>/dev/null
+python3 "$parent_path/Nocodb/CreateTable.py" 1>/dev/null 2>/dev/null
 if [ $? -ne 0 ]; then
 	echo "Nocodb table creation failed"
 	docker compose -f $parent_path/docker-compose.yml --profile=nocodb down
@@ -223,6 +302,7 @@ done
 
 if [ $ready -eq 0 ]; then
 	bash $parent_path/Logger/Log.sh "Database connection failed"
+	sudo rm -rf $parent_path/AppData/postgres
 	exit 1
 fi
 
@@ -234,12 +314,12 @@ bash $parent_path/Logger/Log.sh "Checking Database Schema"
 count=0
 flag=0
 while [ $count -lt 30 ]; do	
-	if [ $(docker exec mahsa_postgres bash -c "psql -U mahsa -d postgres -h localhost -c \"
+	if [ $(docker exec mahsa_postgres bash -c "psql -U ${POSTGRES_USER:-mahsa} -d ${POSTGRES_DB:-postgres} -h ${POSTGRES_HOST:-localhost} -c \"
 		SELECT 1 AS flag
 		FROM information_schema.TABLES AS t
 		WHERE t.table_name = 'users' AND
 		t.table_schema = 'mahsa';\" | grep -c '(1 row)'") -lt 1 ]; then
-		docker exec mahsa_postgres bash -c "psql -U ${POSTGRES_USER:-mahsa} -d ${POSTGRES_DB:-postgres} -h ${POSTGRES_HOST:-localhost} < /code/init.sql 1>/dev/null 2>/dev/null"
+		docker exec mahsa_postgres bash -c "psql -U ${POSTGRES_USER:-mahsa} -d ${POSTGRES_DB:-postgres} -h ${POSTGRES_HOST:-localhost} < /code/Db.sql 1>/dev/null 2>/dev/null"
 		sleep 1
 	else
 		flag=1
@@ -250,6 +330,7 @@ done
 
 if [ $flag -eq 0 ]; then
 	bash $parent_path/Logger/Log.sh "[${POSTGRES_SCHEMA:-mahsa}] schema and/or [users] table creation failed"
+	sudo rm -rf $parent_path/AppData/postgres
 	exit 1
 fi
 
@@ -260,27 +341,28 @@ bash $parent_path/Logger/Log.sh "Creating Backup"
 bash $parent_path/Data/Backup.sh
 
 if [ $? -ne 0 ]; then
-	bash $parent_path/logger/log.sh "Backup creation failed"
+	bash $parent_path/Logger/Log.sh "Backup creation failed"
+	sudo rm -rf $parent_path/AppData/postgres
 	exit 1
 fi
 
-bash $parent_path/logger/log.sh "Enabaling Archive"
+bash $parent_path/Logger/Log.sh "Enabaling Archive"
 
 if ! [ $(
-	docker exec postgres_project bash -c "cat /var/lib/postgresql/data/postgresql.conf" | 
+	docker exec mahsa_postgres bash -c "cat /var/lib/postgresql/data/postgresql.conf" | 
 	grep -c "^archive_mode = on$") -ge 1 ]; then
 
-	docker exec postgres_project bash -c " echo -e \"
+	docker exec mahsa_postgres bash -c " echo -e \"
 	wal_level = replica
 	archive_mode = on
 	archive_command = 'test ! -f /archive/%f && cp %p /archive/%f'\" >> /var/lib/postgresql/data/postgresql.conf"
 
 	if [ $? -ne 0 ]; then
-		bash $parent_path/logger/log.sh "Archive failed"
+		bash $parent_path/Logger/Log.sh "Archive failed"
 		exit 1
 	fi
 else
-	bash $parent_path/logger/log.sh "Archive already enabled"
+	bash $parent_path/Logger/Log.sh "Archive already enabled"
 fi
 
 docker compose -f $parent_path/docker-compose.yml --profile db down

@@ -9,8 +9,8 @@ import os
 import sys
 
 parent_path = Path(__file__).parent.parent
-sys.path.append(str(parent_path / 'logger'))
-from log import Log
+sys.path.append(str(parent_path / 'Logger'))
+from Log import Log
 
 
 load_dotenv(dotenv_path=str(parent_path / '.env'))
@@ -30,7 +30,7 @@ consumer = KafkaConsumer(
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))
 )
 
-logger.info('First Topic (T3_DB) - Succussfully Connected')
+logger.info('First Topic (T1_TS) - Succussfully Connected')
 
 producer = KafkaProducer(
     bootstrap_servers=[f'localhost:{KAFKA_HOST_PORT}'],
@@ -38,7 +38,6 @@ producer = KafkaProducer(
 )
 
 for message in consumer:
-    print('HERE')
     logger.info(
         f"Partition:{message.partition}\tOffset:{message.offset}\tKey:{message.key}\tValue:{message.value}")
 

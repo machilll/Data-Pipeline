@@ -15,7 +15,7 @@ parent_path=$(_get_parent $(readlink -f $0) 2)
 for file_name in T2_LA.py T1_TS.py T3_DB.py; do
 	for pid in $(
 		ps -ax -o pid,command | 
-		grep "$parent_path/topics/$file_name" | 
+		grep "$parent_path/Topics/$file_name" | 
 		grep -v "grep" | 
 		awk '{print $1}'
 	); do

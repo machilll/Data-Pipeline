@@ -16,7 +16,11 @@ _get_parent () {
 }
 
 parent_path=$(_get_parent $(readlink -f $0) 1)
-set -o allexport && source .env && set +o allexport
+
+if [ -f "$parent_path/.env" ]; then
+	set -o allexport && source "$parent_path/.env" && set +o allexport
+fi
+
 
 bash $parent_path/Stopper.sh
 bash $parent_path/Cronjob/AddJob.sh
@@ -35,7 +39,7 @@ fi
 bash $parent_path/Logger/Log.sh "Kafka Is Healthy"
 deactivate
 
-bash $parent_path/logger/log.sh "Testing Nocodb"
+bash $parent_path/Logger/Log.sh "Testing Nocodb"
 count=0
 flag=0
 while [ $count -lt 30 ]; do
@@ -49,9 +53,9 @@ while [ $count -lt 30 ]; do
 done
 
 if [ $flag -eq 0 ]; then
-	bash $parent_path/logger/log.sh "Nocodb connection failed"
+	bash $parent_path/Logger/Log.sh "Nocodb connection failed"
 	exit 1
 fi
-bash $parent_path/logger/log.sh "Nocodb Connection Successful"
+bash $parent_path/Logger/Log.sh "Nocodb Connection Successful"
 bash $parent_path/Logger/Log.sh "Starting Scripts..."
 nohup bash $parent_path/Topics/TopicsRunner.sh 1>/dev/null 2>/dev/null

@@ -13,6 +13,9 @@ _get_parent () {
 
 parent_path=$(_get_parent $(readlink -f $0) 2)
 
-set -o allexport && source $parent_path/.env && set +o allexport
+if [ -f "$parent_path/.env" ]; then
+	set -o allexport && source "$parent_path/.env" && set +o allexport
+fi
+
 
 docker exec mahsa_postgres bash -c "pg_basebackup -U ${POSTGRES_USER:-mahsa} -w -D /backup/standalone-"$(date +%Y-%m-%d_%T%H-%M)" -c fast -P -R"

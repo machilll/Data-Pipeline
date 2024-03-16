@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "DE Project2"
-version = "1.0.0"
+version = "1.0.1"
 description = ""
 authors = ["Mahsa Khodabandehlou"]
 license = "MIT"

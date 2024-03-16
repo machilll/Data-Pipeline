@@ -5,10 +5,10 @@ import os
 import sys
 
 root_path = Path(__file__).parent.parent
-sys.path.append(str(root_path / 'logger'))
-sys.path.append(str(root_path / 'nocodb'))
+sys.path.append(str(root_path / 'Logger'))
+sys.path.append(str(root_path / 'Nocodb'))
 
-from log import Log
+from Log import Log
 from Ncdb import Nocodb
 
 load_dotenv(dotenv_path=str(root_path / '.env'))

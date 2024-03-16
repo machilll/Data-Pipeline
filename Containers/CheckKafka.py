@@ -10,8 +10,8 @@ import os
 import sys
 
 parent_path = Path(__file__).parent.parent
-sys.path.append(str(parent_path / 'logger'))
-from log import Log
+sys.path.append(str(parent_path / 'Logger'))
+from Log import Log
 
 
 load_dotenv(dotenv_path=str(parent_path / '.env'))

@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from log import Log
 import uuid
 import json
 import requests
@@ -10,8 +9,10 @@ import os
 import sys
 
 parent_path = Path(__file__).parent.parent
-sys.path.append(str(parent_path / 'logger'))
+sys.path.append(str(parent_path / 'Logger'))
 
+
+from Log import Log
 
 load_dotenv(dotenv_path=str(parent_path / '.env'))
 

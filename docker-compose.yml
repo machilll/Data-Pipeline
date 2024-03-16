@@ -7,10 +7,10 @@ services:
         ports:
             - ${POSTGRES_HOST_PORT:-13742}:5432
         volumes:
-            - ./Data/postgres:/var/lib/postgresql/data
+            - ./AppData/postgres:/var/lib/postgresql/data
             - ./Data:/code
-            - ./Data/backup:/backup
-            - ./Data/archive:/archive
+            - ./AppData/backup:/backup
+            - ./AppData/archive:/archive
         environment:
             - POSTGRES_USER=${POSTGRES_USER:-mahsa}
             - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-mahsa}
@@ -58,9 +58,9 @@ services:
             - '${NOCODB_HOST_PORT:-8080}:8080'
         restart: always
         volumes:
-            - './Data/Nocodb:/usr/app/data'
+            - './AppData/Nocodb:/usr/app/data'
         profiles:
-            - project
+            - app
             - nocodb
 
     root_db:
@@ -71,14 +71,14 @@ services:
         healthcheck:
             interval: 10s
             retries: 10
-            test: 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+            test: "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""
             timeout: 2s
-        image: postgres
+        image: postgres:16-alpine
         ports:
             - '16585:5432'
         restart: always
         volumes:
-            - './Data/postgres:/var/lib/postgresql/data'
+            - './AppData/nocodb-pg:/var/lib/postgresql/data'
         profiles:
-            - default
+            - app
             - nocodb
